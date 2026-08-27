@@ -1,13 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_project/firebase_options.dart';
 
 import 'package:flutter_project/screens/login_screen.dart';
 import 'package:flutter_project/screens/home_screen.dart';
 
+import 'widgets/custom_snackbar.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ============================================================
+  // INITIALIZE FIREBASE
+  // ============================================================
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -16,6 +23,10 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
+// ================================================================
+// MY APP
+// ================================================================
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -23,31 +34,44 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+
       title: 'ClassCue',
 
-      // Always use dark mode
+      // ========================================================
+      // DARK MODE
+      // ========================================================
+
       themeMode: ThemeMode.dark,
 
-      // Dark Material 3 theme
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
+
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
           brightness: Brightness.dark,
         ),
       ),
 
-      // Authentication decides the first screen
+      // ========================================================
+      // CUSTOM SNACKBAR GLOBAL KEY
+      // ========================================================
+
+      scaffoldMessengerKey:
+      CustomSnackbar.messengerKey,
+
+      // ========================================================
+      // AUTH GATE
+      // ========================================================
+
       home: const AuthGate(),
     );
   }
 }
 
-
-// ============================================================
+// ================================================================
 // AUTH GATE
-// ============================================================
+// ================================================================
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -58,9 +82,12 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
 
       builder: (context, snapshot) {
+        // ======================================================
+        // WAITING
+        // ======================================================
 
-        // Firebase is checking authentication state
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),
@@ -68,12 +95,18 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        // User is logged in
+        // ======================================================
+        // LOGGED IN
+        // ======================================================
+
         if (snapshot.hasData) {
           return const HomeScreen();
         }
 
-        // User is logged out
+        // ======================================================
+        // LOGGED OUT
+        // ======================================================
+
         return const LoginScreen();
       },
     );

@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../controllers/auth_controller.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,12 +11,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final AuthController _authController = AuthController();
+
   bool _remember = true;
   bool _obscure = true;
   bool _isLoading = false;
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController =
+  TextEditingController();
+
+  final TextEditingController _passwordController =
+  TextEditingController();
 
   @override
   void dispose() {
@@ -25,51 +30,38 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // ============================================================
+  // LOGIN
+  // ============================================================
+
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter email and password'),
-        ),
-      );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+    final success = await _authController.login(
+      email: email,
+      password: password,
+    );
 
-      // AuthGate will automatically navigate to HomeScreen
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
+    if (!mounted) return;
 
-      String message = 'Login failed';
+    setState(() {
+      _isLoading = false;
+    });
 
-      if (e.code == 'user-not-found') {
-        message = 'No account found with this email';
-      } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password';
-      } else if (e.code == 'invalid-email') {
-        message = 'Please enter a valid email';
-      } else {
-        message = e.message ?? 'Login failed';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    if (!success) {
+      return;
     }
+
+    // AuthGate automatically shows HomeScreen.
   }
 
   @override
@@ -83,6 +75,11 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           children: [
             const SizedBox(height: 24),
+
+            // ==================================================
+            // HEADER
+            // ==================================================
+
             Center(
               child: Container(
                 height: 160,
@@ -98,19 +95,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 28),
+
             Text(
               'Welcome back',
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
               'Sign in to continue to your account',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
+
             const SizedBox(height: 24),
+
+            // ==================================================
+            // EMAIL
+            // ==================================================
 
             TextField(
               controller: _emailController,
@@ -123,6 +131,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             const SizedBox(height: 16),
+
+            // ==================================================
+            // PASSWORD
+            // ==================================================
 
             TextField(
               controller: _passwordController,
@@ -137,11 +149,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? Icons.visibility_off
                         : Icons.visibility,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscure = !_obscure),
+                  onPressed: () {
+                    setState(() {
+                      _obscure = !_obscure;
+                    });
+                  },
                 ),
               ),
             ),
+
+            // ==================================================
+            // REMEMBER + FORGOT PASSWORD
+            // ==================================================
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,12 +169,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Checkbox(
                       value: _remember,
-                      onChanged: (v) =>
-                          setState(() => _remember = v ?? false),
+                      onChanged: (value) {
+                        setState(() {
+                          _remember = value ?? false;
+                        });
+                      },
                     ),
                     const Text('Remember me'),
                   ],
                 ),
+
                 TextButton(
                   onPressed: () {},
                   child: const Text('Forgot password?'),
@@ -165,31 +188,47 @@ class _LoginScreenState extends State<LoginScreen> {
 
             const SizedBox(height: 8),
 
+            // ==================================================
+            // LOGIN BUTTON
+            // ==================================================
+
             SizedBox(
               height: 52,
               child: FilledButton(
                 onPressed: _isLoading ? null : _signIn,
                 child: _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(),
+                )
                     : const Text('Sign in'),
               ),
             ),
 
             const SizedBox(height: 16),
 
+            // ==================================================
+            // SIGN UP
+            // ==================================================
+
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   "Don't have an account?",
-                  style: TextStyle(color: scheme.onSurfaceVariant),
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
+
                 TextButton(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const SignupScreen(),
+                        builder: (context) =>
+                        const SignupScreen(),
                       ),
                     );
                   },

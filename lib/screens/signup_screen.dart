@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+
 import '../../controllers/auth_controller.dart';
-import '../screens/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -11,55 +11,63 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final AuthController _authController = AuthController();
+
   String _password = '';
   bool _agreed = false;
   bool _isLoading = false;
 
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController =
+  TextEditingController();
+
+  final TextEditingController _emailController =
+  TextEditingController();
+
+  final TextEditingController _passwordController =
+  TextEditingController();
+
+  // ============================================================
+  // PASSWORD STRENGTH
+  // ============================================================
 
   int get _strength {
     var score = 0;
+
     if (_password.length >= 8) score++;
+
     if (RegExp(r'[A-Z]').hasMatch(_password)) score++;
+
     if (RegExp(r'[0-9]').hasMatch(_password)) score++;
+
     if (RegExp(r'[!@#$%^&*]').hasMatch(_password)) score++;
+
     return score;
   }
 
-  static const _labels = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong'];
+  static const _labels = [
+    'Too weak',
+    'Weak',
+    'Fair',
+    'Good',
+    'Strong',
+  ];
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+
     super.dispose();
   }
+
+  // ============================================================
+  // CREATE ACCOUNT
+  // ============================================================
 
   Future<void> _createAccount() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-        ),
-      );
-      return;
-    }
-
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must be at least 6 characters'),
-        ),
-      );
-      return;
-    }
 
     setState(() {
       _isLoading = true;
@@ -78,24 +86,11 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _authController.errorMessage ??
-                'Account creation failed',
-          ),
-        ),
-      );
+      // AuthController already showed CustomSnackbar.
       return;
     }
 
-// Registration successful
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const HomeScreen(),
-      ),
-    );
+    // AuthGate will automatically show HomeScreen.
   }
 
   @override
@@ -112,16 +107,30 @@ class _SignupScreenState extends State<SignupScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
+      appBar: AppBar(
+        title: const Text('Create account'),
+      ),
+
       body: ListView(
         padding: const EdgeInsets.all(24),
+
         children: [
+          // ====================================================
+          // TITLE
+          // ====================================================
+
           Text(
             'Get started free',
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
+
           const SizedBox(height: 20),
+
+          // ====================================================
+          // NAME
+          // ====================================================
 
           TextField(
             controller: _nameController,
@@ -133,6 +142,10 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
 
           const SizedBox(height: 16),
+
+          // ====================================================
+          // EMAIL
+          // ====================================================
 
           TextField(
             controller: _emailController,
@@ -146,10 +159,18 @@ class _SignupScreenState extends State<SignupScreen> {
 
           const SizedBox(height: 16),
 
+          // ====================================================
+          // PASSWORD
+          // ====================================================
+
           TextField(
             controller: _passwordController,
             obscureText: true,
-            onChanged: (v) => setState(() => _password = v),
+            onChanged: (value) {
+              setState(() {
+                _password = value;
+              });
+            },
             decoration: const InputDecoration(
               labelText: 'Password',
               prefixIcon: Icon(Icons.lock_outline),
@@ -159,40 +180,67 @@ class _SignupScreenState extends State<SignupScreen> {
 
           const SizedBox(height: 12),
 
-          Row(
-            children: List.generate(4, (i) {
-              final active = i < _strength;
+          // ====================================================
+          // PASSWORD STRENGTH
+          // ====================================================
 
-              return Expanded(
-                child: Container(
-                  height: 6,
-                  margin: EdgeInsets.only(right: i < 3 ? 6 : 0),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? colors[_strength]
-                        : scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(3),
+          Row(
+            children: List.generate(
+              4,
+                  (index) {
+                final active = index < _strength;
+
+                return Expanded(
+                  child: Container(
+                    height: 6,
+
+                    margin: EdgeInsets.only(
+                      right: index < 3 ? 6 : 0,
+                    ),
+
+                    decoration: BoxDecoration(
+                      color: active
+                          ? colors[_strength]
+                          : scheme.surfaceContainerHighest,
+
+                      borderRadius:
+                      BorderRadius.circular(3),
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              },
+            ),
           ),
 
           const SizedBox(height: 6),
 
           Text(
             'Strength: ${_labels[_strength]}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
 
           const SizedBox(height: 12),
 
+          // ====================================================
+          // TERMS
+          // ====================================================
+
           CheckboxListTile(
             value: _agreed,
-            onChanged: (v) => setState(() => _agreed = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
+
+            onChanged: (value) {
+              setState(() {
+                _agreed = value ?? false;
+              });
+            },
+
+            controlAffinity:
+            ListTileControlAffinity.leading,
+
             contentPadding: EdgeInsets.zero,
+
             title: const Text(
               'I agree to the Terms of Service and Privacy Policy',
             ),
@@ -200,14 +248,25 @@ class _SignupScreenState extends State<SignupScreen> {
 
           const SizedBox(height: 8),
 
+          // ====================================================
+          // CREATE ACCOUNT BUTTON
+          // ====================================================
+
           SizedBox(
             height: 52,
+
             child: FilledButton(
-              onPressed: _agreed && !_isLoading
+              onPressed:
+              _agreed && !_isLoading
                   ? _createAccount
                   : null,
+
               child: _isLoading
-                  ? const CircularProgressIndicator()
+                  ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(),
+              )
                   : const Text('Create account'),
             ),
           ),

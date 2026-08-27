@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/user.dart';
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -35,11 +37,8 @@ class AuthService {
       // =========================
 
       await user.updateDisplayName(name);
-
-      // Make sure updated user data is available
       await user.reload();
 
-      // Get the refreshed user
       final updatedUser = _auth.currentUser;
 
       if (updatedUser == null) {
@@ -66,7 +65,7 @@ class AuthService {
 
       await _firestore
           .collection('users')
-          .doc(updatedUser.uid) // Firebase automatically generated UID
+          .doc(updatedUser.uid)
           .set(userModel.toMap());
 
       // =========================
@@ -80,60 +79,16 @@ class AuthService {
     // FIREBASE AUTH ERRORS
     // =========================
 
-    on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case 'email-already-in-use':
-          throw Exception(
-            'An account already exists with this email.',
-          );
-
-        case 'invalid-email':
-          throw Exception(
-            'The email address is invalid.',
-          );
-
-        case 'weak-password':
-          throw Exception(
-            'The password is too weak.',
-          );
-
-        case 'operation-not-allowed':
-          throw Exception(
-            'Email/password authentication is not enabled.',
-          );
-
-        case 'network-request-failed':
-          throw Exception(
-            'Network error. Please check your internet connection.',
-          );
-
-        default:
-          throw Exception(
-            e.message ?? 'Authentication failed.',
-          );
-      }
+    on FirebaseAuthException {
+      rethrow;
     }
 
     // =========================
     // FIRESTORE ERRORS
     // =========================
 
-    on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw Exception(
-          'Firestore permission denied. Check your Firestore security rules.',
-        );
-      }
-
-      if (e.code == 'unavailable') {
-        throw Exception(
-          'Firestore is currently unavailable. Please try again.',
-        );
-      }
-
-      throw Exception(
-        'Firestore error: ${e.message ?? e.code}',
-      );
+    on FirebaseException {
+      rethrow;
     }
 
     // =========================
@@ -141,9 +96,7 @@ class AuthService {
     // =========================
 
     catch (e) {
-      throw Exception(
-        'Signup failed: $e',
-      );
+      throw Exception('Signup failed: $e');
     }
   }
 
@@ -155,6 +108,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+
     return await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,

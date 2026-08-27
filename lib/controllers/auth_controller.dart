@@ -379,4 +379,61 @@ class AuthController {
   Stream<User?> get authStateChanges {
     return _authService.authStateChanges;
   }
+
+  // =========================
+// RESET PASSWORD
+// =========================
+
+  Future<bool> resetPassword({
+    required String email,
+  }) async {
+    try {
+      errorMessage = null;
+
+      // Email validation
+      final emailRegex = RegExp(
+        r'^[\w\.-]+@[\w\.-]+\.[A-Za-z]{2,}$',
+      );
+
+      if (!emailRegex.hasMatch(email)) {
+        errorMessage = 'Please enter a valid email address.';
+        return false;
+      }
+
+      await _authService.resetPassword(
+        email: email,
+      );
+
+      return true;
+    } on FirebaseAuthException catch (e) {
+      print('RESET PASSWORD ERROR CODE: ${e.code}');
+      print('RESET PASSWORD ERROR MESSAGE: ${e.message}');
+
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'No account found with this email.';
+          break;
+
+        case 'invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+
+        case 'network-request-failed':
+          errorMessage =
+          'Network error. Please check your internet connection.';
+          break;
+
+        default:
+          errorMessage =
+              e.message ?? 'Unable to send reset email.';
+      }
+
+      return false;
+    } catch (e) {
+      print('UNKNOWN RESET PASSWORD ERROR: $e');
+
+      errorMessage = 'Something went wrong. Please try again.';
+      return false;
+    }
+  }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../controllers/auth_controller.dart';
 import 'signup_screen.dart';
-
+import 'reset_password_screen.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -180,7 +180,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
 
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ResetPasswordScreen(),
+                      ),
+                    );
+                  },
                   child: const Text('Forgot password?'),
                 ),
               ],

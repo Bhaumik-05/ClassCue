@@ -1,5 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../controllers/auth_controller.dart';
+import '../screens/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -9,6 +10,7 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  final AuthController _authController = AuthController();
   String _password = '';
   bool _agreed = false;
   bool _isLoading = false;
@@ -59,42 +61,41 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
-    try {
-      final credential =
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+    final success = await _authController.signup(
+      name: name,
+      email: email,
+      password: password,
+    );
 
-      await credential.user?.updateDisplayName(name);
+    if (!mounted) return;
 
-      // AuthGate automatically detects the new user
-      // and shows HomeScreen.
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+    });
 
-      String message = 'Account creation failed';
-
-      if (e.code == 'weak-password') {
-        message = 'The password is too weak';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'An account already exists with this email';
-      } else if (e.code == 'invalid-email') {
-        message = 'Please enter a valid email';
-      } else {
-        message = e.message ?? 'Account creation failed';
-      }
-
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(
+            _authController.errorMessage ??
+                'Account creation failed',
+          ),
+        ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      return;
     }
+
+// Registration successful
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const HomeScreen(),
+      ),
+    );
   }
 
   @override

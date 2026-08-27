@@ -1,5 +1,6 @@
 // assignment_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class AssignmentModel {
   final String id;
   final String title;
@@ -24,10 +25,10 @@ class AssignmentModel {
       id: id,
       title: map['title'] ?? '',
       subject: map['subject'] ?? '',
-      deadline: (map['deadline'] as Timestamp).toDate(),
+      deadline: (map['deadline'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isCompleted: map['is_completed'] ?? false,
-      createdAt: (map['created_at'] as Timestamp).toDate(),
-      updatedAt: (map['updated_at'] as Timestamp).toDate(),
+      createdAt: (map['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (map['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

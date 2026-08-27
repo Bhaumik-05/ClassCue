@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'timetable_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -142,7 +143,12 @@ class HomeScreen extends StatelessWidget {
                   child: _QuickAction(
                     icon: Icons.calendar_month_rounded,
                     label: 'Timetable',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const TimetableScreen()),
+                      );
+                    },
                   ),
                 ),
 

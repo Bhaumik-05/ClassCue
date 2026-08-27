@@ -1,5 +1,6 @@
 // class_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ClassModel {
   final String id;
   final String subjectName;
@@ -26,8 +27,11 @@ class ClassModel {
       startTime: map['start_time'] ?? '',
       endTime: map['end_time'] ?? '',
       dayOfWeek: map['day_of_week'] ?? '',
-      createdAt: (map['created_at'] as Timestamp).toDate(),
-      updatedAt: (map['updated_at'] as Timestamp).toDate(),
+      // created_at/updated_at are null on the locally-cached snapshot
+      // that fires before FieldValue.serverTimestamp() is acknowledged
+      // by the server. Fall back to now() instead of crashing the cast.
+      createdAt: (map['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (map['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

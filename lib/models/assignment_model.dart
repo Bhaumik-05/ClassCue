@@ -36,10 +36,42 @@ class AssignmentModel {
     return {
       'title': title,
       'subject': subject,
-      'deadline': deadline,
+      'deadline': Timestamp.fromDate(deadline),
       'is_completed': isCompleted,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
+      'created_at': Timestamp.fromDate(createdAt),
+      'updated_at': Timestamp.fromDate(updatedAt),
     };
+  }
+
+  // ---------- Deadline helpers (FR4.7 / FR4.8) ----------
+
+  Duration get timeRemaining => deadline.difference(DateTime.now());
+
+  bool get isOverdue => !isCompleted && timeRemaining.isNegative;
+
+  /// Pending, not overdue, and 24 hours or less remaining (FR4.8).
+  bool get isUrgent =>
+      !isCompleted &&
+          !timeRemaining.isNegative &&
+          timeRemaining <= const Duration(hours: 24);
+
+  /// Pending, not overdue, and less than 7 days remaining (FR4.7).
+  bool get isDueSoon =>
+      !isCompleted &&
+          !timeRemaining.isNegative &&
+          timeRemaining < const Duration(days: 7);
+
+  String get remainingLabel {
+    final r = timeRemaining;
+    final abs = r.abs();
+    final String span;
+    if (abs.inDays > 0) {
+      span = '${abs.inDays}d ${abs.inHours % 24}h';
+    } else if (abs.inHours > 0) {
+      span = '${abs.inHours}h ${abs.inMinutes % 60}m';
+    } else {
+      span = '${abs.inMinutes < 1 ? 1 : abs.inMinutes}m';
+    }
+    return r.isNegative ? 'Overdue by $span' : 'Due in $span';
   }
 }

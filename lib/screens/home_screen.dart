@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'assignments_screen.dart';
 import 'timetable_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -158,7 +159,14 @@ class HomeScreen extends StatelessWidget {
                   child: _QuickAction(
                     icon: Icons.assignment_rounded,
                     label: 'Assignments',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AssignmentsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
 

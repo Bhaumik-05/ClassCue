@@ -1,11 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_project/firebase_options.dart';
 
-import 'package:flutter_project/screens/login_screen.dart';
-import 'package:flutter_project/screens/home_screen.dart';
+import 'package:flutter_project/screens/splash_screen.dart';
 
 import 'widgets/custom_snackbar.dart';
 
@@ -64,7 +62,7 @@ class MyApp extends StatelessWidget {
       // AUTH GATE
       // ========================================================
 
-      home: const AuthGate(),
+      home: const SplashScreen(),
     );
   }
 }
@@ -72,43 +70,3 @@ class MyApp extends StatelessWidget {
 // ================================================================
 // AUTH GATE
 // ================================================================
-
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-
-      builder: (context, snapshot) {
-        // ======================================================
-        // WAITING
-        // ======================================================
-
-        if (snapshot.connectionState ==
-            ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        // ======================================================
-        // LOGGED IN
-        // ======================================================
-
-        if (snapshot.hasData) {
-          return const HomeScreen();
-        }
-
-        // ======================================================
-        // LOGGED OUT
-        // ======================================================
-
-        return const LoginScreen();
-      },
-    );
-  }
-}

@@ -378,23 +378,37 @@ class NotificationService {
   // CREATE STABLE NOTIFICATION ID
   // ============================================================
 
-  int _notificationId(String assignmentId) {
+  int _notificationId(String value) {
     // FNV-1a hash.
-    // This gives the same notification ID for the same assignment ID
-    // across app launches.
+    // Same input always produces the same notification ID.
 
     const int offsetBasis = 2166136261;
     const int prime = 16777619;
 
     int hash = offsetBasis;
 
-    for (final byte in utf8.encode(assignmentId)) {
+    for (final byte in utf8.encode(value)) {
       hash ^= byte;
       hash = (hash * prime) & 0xFFFFFFFF;
     }
 
-    // Keep it positive and within Android notification ID range.
     return hash & 0x7FFFFFFF;
+  }
+
+  // ============================================================
+  // ASSIGNMENT NOTIFICATION ID
+  // ============================================================
+
+  int _assignmentNotificationId(String assignmentId) {
+    return _notificationId('assignment:$assignmentId');
+  }
+
+  // ============================================================
+  // CLASS NOTIFICATION ID
+  // ============================================================
+
+  int _classNotificationId(String classId) {
+    return _notificationId('class:$classId');
   }
 
   // ============================================================
@@ -408,9 +422,10 @@ class NotificationService {
     required DateTime deadline,
   }) async {
     try {
-      final notificationId = _notificationId(assignmentId);
+      final notificationId =
+      _assignmentNotificationId(assignmentId);
 
-      // First cancel any previous reminder for this assignment.
+      // Cancel any previous reminder for this assignment.
       await _localNotifications.cancel(
         id: notificationId,
       );
@@ -441,9 +456,7 @@ class NotificationService {
       print('==========================================');
 
       // ----------------------------------------------------------
-      // CASE 1:
-      // Deadline is LESS THAN 24 HOURS away.
-      // Show notification immediately.
+      // Deadline is less than 24 hours away.
       // ----------------------------------------------------------
 
       if (!reminderTime.isAfter(now)) {
@@ -462,9 +475,7 @@ class NotificationService {
       }
 
       // ----------------------------------------------------------
-      // CASE 2:
-      // Deadline is MORE THAN 24 HOURS away.
-      // Schedule for deadline - 24 hours.
+      // Deadline is more than 24 hours away.
       // ----------------------------------------------------------
 
       final scheduledDate = tz.TZDateTime.from(
@@ -472,7 +483,7 @@ class NotificationService {
         tz.local,
       );
 
-      final androidDetails = AndroidNotificationDetails(
+      const androidDetails = AndroidNotificationDetails(
         _channelId,
         'ClassCue Notifications',
         channelDescription: 'Notifications for ClassCue reminders',
@@ -481,7 +492,7 @@ class NotificationService {
         playSound: true,
       );
 
-      final notificationDetails = NotificationDetails(
+      const notificationDetails = NotificationDetails(
         android: androidDetails,
       );
 
@@ -491,7 +502,8 @@ class NotificationService {
         body: '$title${subject.isNotEmpty ? ' • $subject' : ''}',
         scheduledDate: scheduledDate,
         notificationDetails: notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode:
+        AndroidScheduleMode.exactAllowWhileIdle,
         payload: 'assignment:$assignmentId',
       );
 
@@ -545,7 +557,8 @@ class NotificationService {
       String assignmentId,
       ) async {
     try {
-      final notificationId = _notificationId(assignmentId);
+      final notificationId =
+      _assignmentNotificationId(assignmentId);
 
       await _localNotifications.cancel(
         id: notificationId,
@@ -557,6 +570,291 @@ class NotificationService {
     } catch (e) {
       print(
         '❌ ERROR cancelling assignment reminder: $e',
+      );
+    }
+  }
+
+  // ============================================================
+  // PARSE CLASS TIME
+  // ============================================================
+
+  List<int>? _parseTime(String time) {
+    try {
+      final parts = time.split(':');
+
+      if (parts.length != 2) {
+        return null;
+      }
+
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+
+      if (hour < 0 ||
+          hour > 23 ||
+          minute < 0 ||
+          minute > 59) {
+        return null;
+      }
+
+      return [hour, minute];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ============================================================
+  // CONVERT DAY NAME TO WEEKDAY
+  // ============================================================
+
+  int? _weekdayFromString(String dayOfWeek) {
+    switch (dayOfWeek.trim().toUpperCase()) {
+      case 'MONDAY':
+        return DateTime.monday;
+
+      case 'TUESDAY':
+        return DateTime.tuesday;
+
+      case 'WEDNESDAY':
+        return DateTime.wednesday;
+
+      case 'THURSDAY':
+        return DateTime.thursday;
+
+      case 'FRIDAY':
+        return DateTime.friday;
+
+      case 'SATURDAY':
+        return DateTime.saturday;
+
+      case 'SUNDAY':
+        return DateTime.sunday;
+
+      default:
+        return null;
+    }
+  }
+
+  // ============================================================
+  // GET NEXT CLASS START
+  // ============================================================
+
+  tz.TZDateTime? _getNextClassStart({
+    required String dayOfWeek,
+    required String startTime,
+  }) {
+    final weekday = _weekdayFromString(dayOfWeek);
+    final time = _parseTime(startTime);
+
+    if (weekday == null || time == null) {
+      return null;
+    }
+
+    final now = tz.TZDateTime.now(tz.local);
+
+    // Create today's class time.
+    var classStart = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time[0],
+      time[1],
+    );
+
+    // Calculate days until requested weekday.
+    var daysUntilClass = weekday - now.weekday;
+
+    if (daysUntilClass < 0) {
+      daysUntilClass += 7;
+    }
+
+    // Move to the requested weekday.
+    classStart = classStart.add(
+      Duration(days: daysUntilClass),
+    );
+
+    // IMPORTANT:
+    //
+    // We only move the class to next week when the CLASS itself
+    // has already started.
+    //
+    // Example:
+    //
+    // Current = 8:02
+    // Class   = 8:08
+    //
+    // classStart = 8:08
+    //
+    // Since 8:08 is still in the future, we keep today's class.
+    if (!classStart.isAfter(now)) {
+      classStart = classStart.add(
+        const Duration(days: 7),
+      );
+    }
+
+    return classStart;
+  }
+
+  // ============================================================
+  // SCHEDULE CLASS REMINDER
+  //
+  // Reminder is 5 minutes before class.
+  // The notification repeats every week.
+  // ============================================================
+
+  Future<void> scheduleClassReminder({
+    required String classId,
+    required String subjectName,
+    required String startTime,
+    required String dayOfWeek,
+  }) async {
+    try {
+      final notificationId =
+      _classNotificationId(classId);
+
+      // Cancel an existing reminder for this class.
+      await _localNotifications.cancel(
+        id: notificationId,
+      );
+
+      // Find the next class occurrence.
+      final classStart = _getNextClassStart(
+        dayOfWeek: dayOfWeek,
+        startTime: startTime,
+      );
+
+      if (classStart == null) {
+        print(
+          '❌ Invalid class day/time. '
+              'Class reminder was not scheduled.',
+        );
+        return;
+      }
+
+      // Calculate reminder time.
+      final reminderTime = classStart.subtract(
+        const Duration(minutes: 5),
+      );
+
+      final now = tz.TZDateTime.now(tz.local);
+
+      print('==========================================');
+      print('SCHEDULING CLASS REMINDER');
+      print('Class ID: $classId');
+      print('Subject: $subjectName');
+      print('Day: $dayOfWeek');
+      print('Start Time: $startTime');
+      print('Current Time: $now');
+      print('Class Start: $classStart');
+      print('Reminder Time: $reminderTime');
+      print('Notification ID: $notificationId');
+      print('==========================================');
+
+      // ----------------------------------------------------------
+      // IMPORTANT:
+      //
+      // If the reminder time is still in the future,
+      // schedule it for THIS week's class.
+      //
+      // Example:
+      //
+      // Current = 8:02
+      // Class   = 8:08
+      // Reminder = 8:03
+      //
+      // 8:03 is still in the future.
+      // Therefore notification will be scheduled for 8:03 TODAY.
+      // ----------------------------------------------------------
+
+      tz.TZDateTime scheduledReminder = reminderTime;
+
+      // ----------------------------------------------------------
+      // If the 5-minute reminder has already passed,
+      // schedule next week's reminder.
+      //
+      // Example:
+      //
+      // Current = 8:02
+      // Class   = 8:04
+      // Reminder = 7:59
+      //
+      // 7:59 already passed.
+      // Therefore schedule next week's reminder.
+      // ----------------------------------------------------------
+
+      if (!scheduledReminder.isAfter(now)) {
+        scheduledReminder = scheduledReminder.add(
+          const Duration(days: 7),
+        );
+
+        print(
+          'Reminder time already passed. '
+              'Scheduling next week.',
+        );
+      }
+
+      const androidDetails = AndroidNotificationDetails(
+        _channelId,
+        'ClassCue Notifications',
+        channelDescription: 'Notifications for ClassCue reminders',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+      );
+
+      const notificationDetails = NotificationDetails(
+        android: androidDetails,
+      );
+
+      // Schedule the notification.
+      //
+      // dayOfWeekAndTime makes it repeat every week
+      // on the same weekday and time.
+      await _localNotifications.zonedSchedule(
+        id: notificationId,
+        title: 'Class Starting Soon',
+        body: '$subjectName starts in 5 minutes.',
+        scheduledDate: scheduledReminder,
+        notificationDetails: notificationDetails,
+        androidScheduleMode:
+        AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents:
+        DateTimeComponents.dayOfWeekAndTime,
+        payload: 'class:$classId',
+      );
+
+      print(
+        '✅ Class reminder scheduled successfully '
+            'for $scheduledReminder',
+      );
+    } catch (e) {
+      print(
+        '❌ ERROR scheduling class reminder: $e',
+      );
+    }
+  }
+
+  // ============================================================
+  // CANCEL CLASS REMINDER
+  // ============================================================
+
+  Future<void> cancelClassReminder(
+      String classId,
+      ) async {
+    try {
+      final notificationId =
+      _classNotificationId(classId);
+
+      await _localNotifications.cancel(
+        id: notificationId,
+      );
+
+      print(
+        '✅ Class reminder cancelled: $classId',
+      );
+    } catch (e) {
+      print(
+        '❌ ERROR cancelling class reminder: $e',
       );
     }
   }

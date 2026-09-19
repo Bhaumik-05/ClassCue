@@ -41,15 +41,31 @@ dependencies:
   cloud_firestore: ^6.9.0
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.6
   flutter_test:
     sdk: flutter
+flutter_launcher_icons:
+    android: true
+    ios: true
+    image_path: assets/icon/icon.png
+    adaptive_icon_background: "#4F3D7A"
+    adaptive_icon_foreground: assets/icon/icon_foreground.png
+
+flutter_native_splash:
+    color: "#141218"
+    image: assets/icon/splash_logo.png
+    android_12:
+      color: "#141218"
+      image: assets/icon/splash_logo.png
+      icon_background_color: "#4F3D7A"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^6.0.0
+flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -18,7 +18,6 @@ class _TimetableScreenState extends State<TimetableScreen> {
     'THURSDAY',
     'FRIDAY',
     'SATURDAY',
-    'SUNDAY',
   ];
 
   final ClassController _controller = ClassController();
@@ -29,7 +28,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
   void initState() {
     super.initState();
     final todayIndex = DateTime.now().weekday - 1; // Mon=0..Sun=6
-    _selectedDay = _days[todayIndex];
+    // No Sunday in the timetable: default to Monday on Sundays.
+    _selectedDay = todayIndex < _days.length ? _days[todayIndex] : _days.first;
     _classesStream = _controller.watchClasses(dayOfWeek: _selectedDay);
   }
 
@@ -405,21 +405,37 @@ class _ClassFormSheetState extends State<_ClassFormSheet> {
     super.dispose();
   }
 
+  int _minutes(TimeOfDay t) => t.hour * 60 + t.minute;
+
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: (isStart ? _startTime : _endTime) ?? TimeOfDay.now(),
+      initialTime: (isStart ? _startTime : (_endTime ?? _startTime)) ??
+          TimeOfDay.now(),
     );
 
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startTime = picked;
-        } else {
-          _endTime = picked;
-        }
-      });
+    if (picked == null) return;
+
+    // End time must be after start time (same day).
+    if (!isStart &&
+        _startTime != null &&
+        _minutes(picked) <= _minutes(_startTime!)) {
+      setState(() => _errorText = 'End time must be after start time.');
+      return;
     }
+
+    setState(() {
+      _errorText = null;
+      if (isStart) {
+        _startTime = picked;
+        // Clear an end time that is no longer valid.
+        if (_endTime != null && _minutes(_endTime!) <= _minutes(picked)) {
+          _endTime = null;
+        }
+      } else {
+        _endTime = picked;
+      }
+    });
   }
 
   Future<void> _save() async {
@@ -427,6 +443,11 @@ class _ClassFormSheetState extends State<_ClassFormSheet> {
 
     if (subject.isEmpty || _startTime == null || _endTime == null) {
       setState(() => _errorText = 'Please fill in all fields');
+      return;
+    }
+
+    if (_minutes(_endTime!) <= _minutes(_startTime!)) {
+      setState(() => _errorText = 'End time must be after start time.');
       return;
     }
 

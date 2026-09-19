@@ -38,13 +38,17 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      return;
-    }
+    // ============================================================
+    // START LOADING
+    // ============================================================
 
     setState(() {
       _isLoading = true;
     });
+
+    // ============================================================
+    // LOGIN THROUGH AUTH CONTROLLER
+    // ============================================================
 
     final success = await _authController.login(
       email: email,
@@ -53,14 +57,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
+    // ============================================================
+    // STOP LOADING
+    // ============================================================
+
     setState(() {
       _isLoading = false;
     });
+
+    // ============================================================
+    // LOGIN FAILED
+    // ============================================================
 
     if (!success) {
       return;
     }
 
+    // ============================================================
+    // LOGIN SUCCESS
+    // ============================================================
     // AuthGate automatically shows HomeScreen.
   }
 

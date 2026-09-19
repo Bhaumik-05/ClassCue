@@ -69,9 +69,17 @@ class _SignupScreenState extends State<SignupScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
+    // ============================================================
+    // START LOADING
+    // ============================================================
+
     setState(() {
       _isLoading = true;
     });
+
+    // ============================================================
+    // CREATE ACCOUNT
+    // ============================================================
 
     final success = await _authController.signup(
       name: name,
@@ -81,16 +89,36 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (!mounted) return;
 
+    // ============================================================
+    // STOP LOADING
+    // ============================================================
+
     setState(() {
       _isLoading = false;
     });
 
+    // ============================================================
+    // SIGNUP FAILED
+    // ============================================================
+
     if (!success) {
-      // AuthController already showed CustomSnackbar.
+      // AuthController already shows the error snackbar.
       return;
     }
 
-    // AuthGate will automatically show HomeScreen.
+    // ============================================================
+    // SIGNUP SUCCESS
+    // ============================================================
+
+    // Firebase has already signed the user in.
+    //
+    // Return to the root AuthGate.
+    // AuthGate will detect the logged-in Firebase user
+    // and automatically display HomeScreen.
+    //
+    // This also removes LoginScreen and SignupScreen
+    // from the navigation stack.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

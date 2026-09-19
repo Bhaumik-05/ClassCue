@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/assignment_controller.dart';
 import '../models/assignment_model.dart';
+import '../widgets/app_animations.dart';
 import '../widgets/custom_snackbar.dart';
 
 // ---------------------------------------------------------------
@@ -235,14 +236,22 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                 ),
               ),
             ],
-            _AssignmentList(
-              items: items,
-              emptyIcon: emptyIcon,
-              emptyTitle: emptyTitle,
-              emptyMessage: emptyMessage,
-              onToggle: _toggle,
-              onEdit: (a) => _openForm(context, existing: a),
-              onDelete: _confirmDelete,
+            AnimatedSwitcher(
+              duration: AppAnim.short,
+              transitionBuilder: AppAnim.fadeSlide,
+              layoutBuilder: AppAnim.topLayout,
+              child: KeyedSubtree(
+                key: ValueKey('$_view-$_selectedDay'),
+                child: _AssignmentList(
+                  items: items,
+                  emptyIcon: emptyIcon,
+                  emptyTitle: emptyTitle,
+                  emptyMessage: emptyMessage,
+                  onToggle: _toggle,
+                  onEdit: (a) => _openForm(context, existing: a),
+                  onDelete: _confirmDelete,
+                ),
+              ),
             ),
           ],
         ),

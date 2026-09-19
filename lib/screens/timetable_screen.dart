@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../controllers/class_controller.dart';
 import '../models/class_model.dart';
+import '../widgets/app_animations.dart';
 
 class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
@@ -93,50 +94,58 @@ class _TimetableScreenState extends State<TimetableScreen> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: StreamBuilder<List<ClassModel>>(
-                stream: _classesStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'Error:\n${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.error,
+              child: AnimatedSwitcher(
+                duration: AppAnim.short,
+                transitionBuilder: AppAnim.fadeSlide,
+                layoutBuilder: AppAnim.topLayout,
+                child: KeyedSubtree(
+                  key: ValueKey(_selectedDay),
+                  child: StreamBuilder<List<ClassModel>>(
+                    stream: _classesStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'Error:\n${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: scheme.error,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  }
+                        );
+                      }
 
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  final classes = snapshot.data!;
+                      final classes = snapshot.data!;
 
-                  if (classes.isEmpty) {
-                    return _EmptyState(
-                      onAddClass: () => _openClassForm(context),
-                    );
-                  }
+                      if (classes.isEmpty) {
+                        return _EmptyState(
+                          onAddClass: () => _openClassForm(context),
+                        );
+                      }
 
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                    itemCount: classes.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final c = classes[index];
-                      return _ClassCard(
-                        classModel: c,
-                        onTap: () => _openClassForm(context, existing: c),
-                        onDelete: () => _deleteClass(c.id),
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                        itemCount: classes.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final c = classes[index];
+                          return _ClassCard(
+                            classModel: c,
+                            onTap: () => _openClassForm(context, existing: c),
+                            onDelete: () => _deleteClass(c.id),
+                          );
+                        },
                       );
                     },
-                  );
-                },
+                  ),
+                ),
               ),
             ),
           ],

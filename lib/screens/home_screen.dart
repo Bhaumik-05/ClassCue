@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../controllers/assignment_controller.dart';
 import '../models/assignment_model.dart';
+import '../widgets/app_animations.dart';
 import 'assignments_screen.dart';
 import 'timetable_screen.dart';
 
@@ -27,9 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openAssignments() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const AssignmentsScreen(),
-      ),
+      AppRoute.push(const AssignmentsScreen()),
     );
   }
 
@@ -99,85 +98,91 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(24),
 
               children: [
-                Text(
-                  'Hello, $userName 👋',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                FadeSlideIn(
+                    index: 0,
+                    child: Text(
+                      'Hello, $userName 👋',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )),
 
                 const SizedBox(height: 4),
 
-                Text(
-                  'Here is what is happening today.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
+                FadeSlideIn(
+                    index: 0,
+                    child: Text(
+                      'Here is what is happening today.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    )),
 
                 const SizedBox(height: 24),
 
                 // Today's overview
-                Container(
-                  padding: const EdgeInsets.all(20),
+                FadeSlideIn(
+                    index: 1,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
 
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 48,
-                        color: scheme.onPrimaryContainer,
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(24),
                       ),
 
-                      const SizedBox(width: 16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 48,
+                            color: scheme.onPrimaryContainer,
+                          ),
 
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          const SizedBox(width: 16),
 
-                          children: [
-                            Text(
-                              'Today\'s Classes',
-                              style: theme
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color:
-                                scheme.onPrimaryContainer,
-                              ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+
+                              children: [
+                                Text(
+                                  'Today\'s Classes',
+                                  style: theme
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                    scheme.onPrimaryContainer,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Text(
+                                  '3 classes scheduled today',
+                                  style: theme
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                    color:
+                                    scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
 
-                            const SizedBox(height: 4),
-
-                            Text(
-                              '3 classes scheduled today',
-                              style: theme
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                color:
-                                scheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 18,
+                            color: scheme.onPrimaryContainer,
+                          ),
+                        ],
                       ),
-
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 18,
-                        color: scheme.onPrimaryContainer,
-                      ),
-                    ],
-                  ),
-                ),
+                    )),
 
                 const SizedBox(height: 28),
 
@@ -190,70 +195,74 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 16),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _QuickAction(
-                        icon: Icons.calendar_month_rounded,
-                        label: 'Timetable',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                              const TimetableScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                FadeSlideIn(
+                    index: 2,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _QuickAction(
+                            icon: Icons.calendar_month_rounded,
+                            label: 'Timetable',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                AppRoute.push(const TimetableScreen()),
+                              );
+                            },
+                          ),
+                        ),
 
-                    const SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                    Expanded(
-                      child: _QuickAction(
-                        icon: Icons.assignment_rounded,
-                        label: 'Assignments',
-                        onTap: _openAssignments,
-                      ),
-                    ),
+                        Expanded(
+                          child: _QuickAction(
+                            icon: Icons.assignment_rounded,
+                            label: 'Assignments',
+                            onTap: _openAssignments,
+                          ),
+                        ),
 
-                    const SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                    Expanded(
-                      child: _QuickAction(
-                        icon: Icons.add_alert_rounded,
-                        label: 'Reminders',
-                        onTap: () {},
-                      ),
-                    ),
-                  ],
-                ),
+                        Expanded(
+                          child: _QuickAction(
+                            icon: Icons.add_alert_rounded,
+                            label: 'Reminders',
+                            onTap: () {},
+                          ),
+                        ),
+                      ],
+                    )),
 
                 const SizedBox(height: 28),
 
-                Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+                FadeSlideIn(
+                    index: 3,
+                    child: Row(
+                      mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
 
-                  children: [
-                    Text(
-                      'Upcoming Deadlines',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                      children: [
+                        Text(
+                          'Upcoming Deadlines',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
 
-                    TextButton(
-                      onPressed: _openAssignments,
-                      child: const Text('View all'),
-                    ),
-                  ],
-                ),
+                        TextButton(
+                          onPressed: _openAssignments,
+                          child: const Text('View all'),
+                        ),
+                      ],
+                    )),
 
                 const SizedBox(height: 8),
 
-                _buildUpcoming(context),
+                FadeSlideIn(
+                  index: 3,
+                  child: _buildUpcoming(context),
+                ),
               ],
             ),
           ),

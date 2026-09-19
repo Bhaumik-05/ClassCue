@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_project/firebase_options.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_project/firebase_options.dart';
 import 'package:flutter_project/screens/splash_screen.dart';
 
 import 'widgets/custom_snackbar.dart';
+
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +20,25 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // ============================================================
+  // REGISTER BACKGROUND FCM HANDLER
+  // ============================================================
+
+  FirebaseMessaging.onBackgroundMessage(
+    firebaseMessagingBackgroundHandler,
+  );
+
+  // ============================================================
+  // INITIALIZE NOTIFICATIONS
+  // ============================================================
+
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  // ============================================================
+  // RUN APP
+  // ============================================================
 
   runApp(const MyApp());
 }
@@ -55,18 +77,13 @@ class MyApp extends StatelessWidget {
       // CUSTOM SNACKBAR GLOBAL KEY
       // ========================================================
 
-      scaffoldMessengerKey:
-      CustomSnackbar.messengerKey,
+      scaffoldMessengerKey: CustomSnackbar.messengerKey,
 
       // ========================================================
-      // AUTH GATE
+      // AUTH / SPLASH SCREEN
       // ========================================================
 
       home: const SplashScreen(),
     );
   }
 }
-
-// ================================================================
-// AUTH GATE
-// ================================================================

@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../models/user.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
   // =========================
   // SIGN UP
@@ -46,7 +48,15 @@ class AuthService {
       }
 
       // =========================
-      // 3. CREATE USER MODEL
+      // 3. GET FCM TOKEN
+      // =========================
+
+      final fcmToken = await _messaging.getToken();
+
+      print('FCM Token for new user: $fcmToken');
+
+      // =========================
+      // 4. CREATE USER MODEL
       // =========================
 
       final now = DateTime.now();
@@ -55,12 +65,13 @@ class AuthService {
         uid: updatedUser.uid,
         name: name,
         email: updatedUser.email ?? email,
+        fcmToken: fcmToken,
         createdAt: now,
         updatedAt: now,
       );
 
       // =========================
-      // 4. SAVE USER TO FIRESTORE
+      // 5. SAVE USER TO FIRESTORE
       // =========================
 
       await _firestore
@@ -69,7 +80,7 @@ class AuthService {
           .set(userModel.toMap());
 
       // =========================
-      // 5. RETURN SUCCESS
+      // 6. RETURN SUCCESS
       // =========================
 
       return credential;
@@ -108,11 +119,52 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-
-    return await _auth.signInWithEmailAndPassword(
+    final credential = await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
+
+    // Update FCM token after login.
+    await _updateFCMToken();
+
+    return credential;
+  }
+
+  // =========================
+  // UPDATE FCM TOKEN
+  // =========================
+
+  Future<void> _updateFCMToken() async {
+    final user = _auth.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    try {
+      // Get the FCM token of the current device.
+      final fcmToken = await _messaging.getToken();
+
+      if (fcmToken == null) {
+        print('FCM Token is null.');
+        return;
+      }
+
+      print('Updating FCM Token in Firestore...');
+
+      // Save the token to the logged-in user's document.
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'fcm_token': fcmToken,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      print('FCM Token saved successfully.');
+    } catch (e) {
+      print('Failed to save FCM Token: $e');
+    }
   }
 
   // =========================
@@ -138,6 +190,10 @@ class AuthService {
   Stream<User?> get authStateChanges {
     return _auth.authStateChanges();
   }
+
+  // =========================
+  // RESET PASSWORD
+  // =========================
 
   Future<void> resetPassword({
     required String email,

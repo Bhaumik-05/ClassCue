@@ -2,45 +2,76 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/assignment_model.dart';
+import 'notification_service.dart';
 
 class AssignmentService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  final NotificationService _notificationService =
+  NotificationService();
+
   String get _uid {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+
+    if (user == null) {
+      throw Exception('No authenticated user');
+    }
+
     return user.uid;
   }
 
-  // users/{uid}/assignments -> only the signed-in user's data (FR4.9)
   CollectionReference<Map<String, dynamic>> get _ref {
-    return _db.collection('users').doc(_uid).collection('assignments');
+    return _db
+        .collection('users')
+        .doc(_uid)
+        .collection('assignments');
   }
 
-  /// All assignments ordered by deadline (ascending).
-  /// Split into pending/completed on the client (no composite index needed).
+  // ============================================================
+  // WATCH ASSIGNMENTS
+  // ============================================================
+
   Stream<List<AssignmentModel>> watchAssignments() {
     return _ref.orderBy('deadline').snapshots().map(
           (snap) => snap.docs
-          .map((d) => AssignmentModel.fromMap(d.data(), d.id))
+          .map(
+            (d) => AssignmentModel.fromMap(
+          d.data(),
+          d.id,
+        ),
+      )
           .toList(),
     );
   }
 
+  // ============================================================
+  // GET ASSIGNMENTS
+  // ============================================================
+
   Future<List<AssignmentModel>> getAssignments() async {
     final snap = await _ref.orderBy('deadline').get();
+
     return snap.docs
-        .map((d) => AssignmentModel.fromMap(d.data(), d.id))
+        .map(
+          (d) => AssignmentModel.fromMap(
+        d.data(),
+        d.id,
+      ),
+    )
         .toList();
   }
 
-  /// Returns the new document id (needed later to schedule notifications).
+  // ============================================================
+  // ADD ASSIGNMENT
+  // ============================================================
+
   Future<String> addAssignment({
     required String title,
     required String subject,
     required DateTime deadline,
   }) async {
     final now = FieldValue.serverTimestamp();
+
     final doc = await _ref.add({
       'title': title,
       'subject': subject,
@@ -49,8 +80,21 @@ class AssignmentService {
       'created_at': now,
       'updated_at': now,
     });
+
+    // Schedule local deadline reminder.
+    await _notificationService.scheduleAssignmentReminder(
+      assignmentId: doc.id,
+      title: title,
+      subject: subject,
+      deadline: deadline,
+    );
+
     return doc.id;
   }
+
+  // ============================================================
+  // UPDATE ASSIGNMENT
+  // ============================================================
 
   Future<void> updateAssignment({
     required String id,
@@ -64,16 +108,77 @@ class AssignmentService {
       'deadline': Timestamp.fromDate(deadline),
       'updated_at': FieldValue.serverTimestamp(),
     });
+
+    // Cancel old reminder and create a new one.
+    await _notificationService.scheduleAssignmentReminder(
+      assignmentId: id,
+      title: title,
+      subject: subject,
+      deadline: deadline,
+    );
   }
 
-  Future<void> setCompleted(String id, bool isCompleted) async {
+  // ============================================================
+  // COMPLETE / UNCOMPLETE ASSIGNMENT
+  // ============================================================
+
+  Future<void> setCompleted(
+      String id,
+      bool isCompleted,
+      ) async {
     await _ref.doc(id).update({
       'is_completed': isCompleted,
       'updated_at': FieldValue.serverTimestamp(),
     });
+
+    if (isCompleted) {
+      // Assignment completed → no reminder needed.
+      await _notificationService.cancelAssignmentReminder(id);
+
+      print(
+        'Assignment completed. Reminder cancelled.',
+      );
+    } else {
+      // Assignment marked incomplete again.
+      // Fetch it and schedule its reminder again.
+
+      final doc = await _ref.doc(id).get();
+
+      if (!doc.exists) {
+        return;
+      }
+
+      final assignment = AssignmentModel.fromMap(
+        doc.data()!,
+        doc.id,
+      );
+
+      await _notificationService.scheduleAssignmentReminder(
+        assignmentId: assignment.id,
+        title: assignment.title,
+        subject: assignment.subject,
+        deadline: assignment.deadline,
+      );
+
+      print(
+        'Assignment marked incomplete. Reminder scheduled again.',
+      );
+    }
   }
 
+  // ============================================================
+  // DELETE ASSIGNMENT
+  // ============================================================
+
   Future<void> deleteAssignment(String id) async {
+    // Cancel notification first.
+    await _notificationService.cancelAssignmentReminder(id);
+
+    // Delete Firestore document.
     await _ref.doc(id).delete();
+
+    print(
+      'Assignment deleted and reminder cancelled.',
+    );
   }
 }

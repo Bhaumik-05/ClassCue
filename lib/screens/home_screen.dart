@@ -1,10 +1,33 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../controllers/assignment_controller.dart';
+import '../models/assignment_model.dart';
 import 'assignments_screen.dart';
 import 'timetable_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final AssignmentController _assignmentController = AssignmentController();
+  late final Stream<List<AssignmentModel>> _assignmentsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _assignmentsStream = _assignmentController.watchAssignments();
+  }
+
+  void _openAssignments() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AssignmentsScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,14 +182,7 @@ class HomeScreen extends StatelessWidget {
                   child: _QuickAction(
                     icon: Icons.assignment_rounded,
                     label: 'Assignments',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AssignmentsScreen(),
-                        ),
-                      );
-                    },
+                    onTap: _openAssignments,
                   ),
                 ),
 
@@ -188,14 +204,14 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Upcoming',
+                  'Upcoming Deadlines',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
                 TextButton(
-                  onPressed: () {},
+                  onPressed: _openAssignments,
                   child: const Text('View all'),
                 ),
               ],
@@ -203,33 +219,75 @@ class HomeScreen extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            _UpcomingCard(
-              subject: 'Mathematics',
-              task: 'Assignment submission',
-              due: 'Due tomorrow',
-              icon: Icons.calculate_rounded,
-            ),
-
-            const SizedBox(height: 12),
-
-            _UpcomingCard(
-              subject: 'Computer Science',
-              task: 'Complete project work',
-              due: 'Due in 3 days',
-              icon: Icons.computer_rounded,
-            ),
-
-            const SizedBox(height: 12),
-
-            _UpcomingCard(
-              subject: 'Physics',
-              task: 'Prepare for practical',
-              due: 'Due this week',
-              icon: Icons.science_rounded,
-            ),
+            _buildUpcoming(context),
           ],
         ),
       ),
+    );
+  }
+
+  /// Top 7 pending deadlines, soonest first.
+  Widget _buildUpcoming(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return StreamBuilder<List<AssignmentModel>>(
+      stream: _assignmentsStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Text(
+            'Could not load deadlines.',
+            style: TextStyle(color: scheme.error),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final top = _assignmentController
+            .pending(snapshot.data!)
+            .take(7)
+            .toList();
+
+        if (top.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.task_alt_rounded, size: 36, color: scheme.primary),
+                const SizedBox(height: 10),
+                Text(
+                  'No pending deadlines',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            for (final a in top)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _UpcomingCard(
+                  assignment: a,
+                  onTap: _openAssignments,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -279,81 +337,98 @@ class _QuickAction extends StatelessWidget {
 }
 
 class _UpcomingCard extends StatelessWidget {
-  final String subject;
-  final String task;
-  final String due;
-  final IconData icon;
+  final AssignmentModel assignment;
+  final VoidCallback onTap;
 
-  const _UpcomingCard({
-    required this.subject,
-    required this.task,
-    required this.due,
-    required this.icon,
-  });
+  const _UpcomingCard({required this.assignment, required this.onTap});
+
+  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  String _dateLabel(DateTime d) {
+    final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final m = d.minute.toString().padLeft(2, '0');
+    final p = d.hour >= 12 ? 'PM' : 'AM';
+    return '${_weekdays[d.weekday - 1]}, ${d.day} ${_months[d.month - 1]} '
+        '• $h:$m $p';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final a = assignment;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 48,
-            width: 48,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(14),
+    Color? accent;
+    if (a.isOverdue || a.isUrgent) {
+      accent = scheme.error;
+    } else if (a.isDueSoon) {
+      accent = Colors.amber;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+          border: accent != null ? Border.all(color: accent, width: 1.5) : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                Icons.assignment_rounded,
+                color: scheme.onPrimaryContainer,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: scheme.onPrimaryContainer,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    a.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${a.subject} • ${_dateLabel(a.deadline)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    a.remainingLabel,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: accent ?? scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-
-          const SizedBox(width: 14),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subject,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 3),
-
-                Text(
-                  task,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
-                Text(
-                  due,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const Icon(Icons.chevron_right_rounded),
-        ],
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
       ),
     );
   }

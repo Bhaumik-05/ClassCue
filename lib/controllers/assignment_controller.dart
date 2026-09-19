@@ -2,7 +2,10 @@ import '../models/assignment_model.dart';
 import '../services/assignment_service.dart';
 
 class AssignmentController {
-  final AssignmentService _service = AssignmentService();
+  final AssignmentService _service;
+
+  AssignmentController({AssignmentService? service})
+      : _service = service ?? AssignmentService();
 
   String? errorMessage;
 

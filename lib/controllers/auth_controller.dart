@@ -4,7 +4,10 @@ import '../services/auth_service.dart';
 import '../widgets/custom_snackbar.dart';
 
 class AuthController {
-  final AuthService _authService = AuthService();
+  final AuthService _authService;
+
+  AuthController({AuthService? authService})
+      : _authService = authService ?? AuthService();
 
   String? errorMessage;
 

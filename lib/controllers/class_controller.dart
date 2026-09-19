@@ -16,7 +16,10 @@ class ClassController {
     }
   }
 
-  final ClassService _classService = ClassService();
+  final ClassService _classService;
+
+  ClassController({ClassService? classService})
+      : _classService = classService ?? ClassService();
 
   String? errorMessage;
 

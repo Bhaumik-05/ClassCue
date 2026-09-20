@@ -91,15 +91,16 @@ void main() {
       expect(service.updateCalls, 0);
     });
 
-    test('allows an already-passed deadline when editing', () async {
+    test('rejects a deadline in the past when editing', () async {
       final ok = await controller.updateAssignment(
         id: 'a',
         title: 'HW',
         subject: 'S',
         deadline: DateTime.now().subtract(const Duration(days: 1)),
       );
-      expect(ok, isTrue);
-      expect(service.updateCalls, 1);
+      expect(ok, isFalse);
+      expect(controller.errorMessage, 'Deadline must be in the future.');
+      expect(service.updateCalls, 0);
     });
 
     test('service failure gives error message', () async {

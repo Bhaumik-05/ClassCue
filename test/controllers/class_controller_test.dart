@@ -6,11 +6,17 @@ import '../helpers/fakes.dart';
 
 void main() {
   late FakeClassService service;
+  late FakeNotificationService notificationService;
   late ClassController controller;
 
   setUp(() {
     service = FakeClassService();
-    controller = ClassController(classService: service);
+    notificationService = FakeNotificationService();
+
+    controller = ClassController(
+      classService: service,
+      notificationService: notificationService,
+    );
   });
 
   Future<bool> add({
@@ -107,6 +113,69 @@ void main() {
       expect(await controller.deleteClass('c1'), isFalse);
       expect(controller.errorMessage,
           'Could not delete class. Please try again.');
+    });
+  });
+
+  group('class reminders (FR6)', () {
+    test('adding a class schedules its reminder with the new id', () async {
+      expect(await add(subject: '  Maths '), isTrue);
+      expect(notificationService.scheduleCalls, 1);
+      expect(notificationService.lastClassId, 'class-id-1');
+      expect(notificationService.lastSubject, 'Maths');
+      expect(notificationService.lastStart, '09:00');
+      expect(notificationService.lastDay, 'MONDAY');
+    });
+
+    test('invalid class schedules nothing', () async {
+      await add(subject: '');
+      await add(start: '12:00', end: '11:00');
+      expect(notificationService.scheduleCalls, 0);
+    });
+
+    test('failed save schedules nothing', () async {
+      service.fail = true;
+      await add();
+      expect(notificationService.scheduleCalls, 0);
+    });
+
+    test('editing cancels the old reminder and schedules the new one',
+            () async {
+          final ok = await controller.updateClass(
+            id: 'c1',
+            subjectName: 'Physics',
+            startTime: '11:00',
+            endTime: '12:00',
+            dayOfWeek: 'TUESDAY',
+          );
+          expect(ok, isTrue);
+          expect(notificationService.cancelledIds, ['c1']);
+          expect(notificationService.scheduleCalls, 1);
+          expect(notificationService.lastClassId, 'c1');
+          expect(notificationService.lastDay, 'TUESDAY');
+          expect(notificationService.lastStart, '11:00');
+        });
+
+    test('invalid edit leaves the existing reminder untouched', () async {
+      await controller.updateClass(
+        id: 'c1',
+        subjectName: 'Physics',
+        startTime: '12:00',
+        endTime: '11:00',
+        dayOfWeek: 'TUESDAY',
+      );
+      expect(notificationService.cancelCalls, 0);
+      expect(notificationService.scheduleCalls, 0);
+    });
+
+    test('deleting a class cancels its reminder', () async {
+      expect(await controller.deleteClass('c1'), isTrue);
+      expect(notificationService.cancelledIds, ['c1']);
+    });
+
+    test('failed delete keeps the reminder', () async {
+      service.fail = true;
+      await controller.deleteClass('c1');
+      expect(notificationService.cancelCalls, 0);
     });
   });
 }

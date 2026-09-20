@@ -5,6 +5,7 @@ import 'package:flutter_project/models/assignment_model.dart';
 import 'package:flutter_project/services/assignment_service.dart';
 import 'package:flutter_project/services/auth_service.dart';
 import 'package:flutter_project/services/class_service.dart';
+import 'package:flutter_project/services/notification_service.dart';
 
 /// `Fake implements X` never runs X's constructor, so no Firebase is needed.
 
@@ -115,7 +116,7 @@ class FakeClassService extends Fake implements ClassService {
   String? lastDay;
 
   @override
-  Future<void> addClass({
+  Future<String> addClass({
     required String subjectName,
     required String startTime,
     required String endTime,
@@ -126,7 +127,10 @@ class FakeClassService extends Fake implements ClassService {
     lastStart = startTime;
     lastEnd = endTime;
     lastDay = dayOfWeek;
+
     if (fail) throw Exception('boom');
+
+    return 'class-id-1';
   }
 
   @override
@@ -146,5 +150,35 @@ class FakeClassService extends Fake implements ClassService {
   Future<void> deleteClass(String id) async {
     deleteCalls++;
     if (fail) throw Exception('boom');
+  }
+}
+class FakeNotificationService extends Fake implements NotificationService {
+  int scheduleCalls = 0;
+  int cancelCalls = 0;
+  final List<String> cancelledIds = [];
+
+  String? lastClassId;
+  String? lastSubject;
+  String? lastStart;
+  String? lastDay;
+
+  @override
+  Future<void> scheduleClassReminder({
+    required String classId,
+    required String subjectName,
+    required String startTime,
+    required String dayOfWeek,
+  }) async {
+    scheduleCalls++;
+    lastClassId = classId;
+    lastSubject = subjectName;
+    lastStart = startTime;
+    lastDay = dayOfWeek;
+  }
+
+  @override
+  Future<void> cancelClassReminder(String classId) async {
+    cancelCalls++;
+    cancelledIds.add(classId);
   }
 }

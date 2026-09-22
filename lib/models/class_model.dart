@@ -1,9 +1,24 @@
 // class_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum ClassType {
+  lecture,
+  lab;
+
+  static ClassType fromValue(String? value) {
+    return value == 'LAB' ? ClassType.lab : ClassType.lecture;
+  }
+
+  String get value => this == ClassType.lab ? 'LAB' : 'LECTURE';
+
+  String get label => this == ClassType.lab ? 'Lab / Practical' : 'Lecture';
+}
+
 class ClassModel {
   final String id;
   final String subjectName;
+  final String facultyName;
+  final ClassType classType;
   final String startTime; // "HH:mm"
   final String endTime;   // "HH:mm"
   final String dayOfWeek; // "MONDAY", etc.
@@ -13,6 +28,8 @@ class ClassModel {
   ClassModel({
     required this.id,
     required this.subjectName,
+    this.facultyName = '',
+    this.classType = ClassType.lecture,
     required this.startTime,
     required this.endTime,
     required this.dayOfWeek,
@@ -24,6 +41,8 @@ class ClassModel {
     return ClassModel(
       id: id,
       subjectName: map['subject_name'] ?? '',
+      facultyName: map['faculty_name'] ?? '',
+      classType: ClassType.fromValue(map['class_type'] as String?),
       startTime: map['start_time'] ?? '',
       endTime: map['end_time'] ?? '',
       dayOfWeek: map['day_of_week'] ?? '',
@@ -38,6 +57,8 @@ class ClassModel {
   Map<String, dynamic> toMap() {
     return {
       'subject_name': subjectName,
+      'faculty_name': facultyName,
+      'class_type': classType.value,
       'start_time': startTime,
       'end_time': endTime,
       'day_of_week': dayOfWeek,

@@ -99,6 +99,8 @@ class ClassService {
 
   Future<String> addClass({
     required String subjectName,
+    String facultyName = '',
+    ClassType classType = ClassType.lecture,
     required String startTime,
     required String endTime,
     required String dayOfWeek,
@@ -107,6 +109,8 @@ class ClassService {
 
     final document = await _classesRef.add({
       'subject_name': subjectName,
+      'faculty_name': facultyName,
+      'class_type': classType.value,
       'start_time': startTime,
       'end_time': endTime,
       'day_of_week': dayOfWeek,
@@ -125,12 +129,16 @@ class ClassService {
   Future<void> updateClass({
     required String id,
     required String subjectName,
+    String facultyName = '',
+    ClassType classType = ClassType.lecture,
     required String startTime,
     required String endTime,
     required String dayOfWeek,
   }) async {
     await _classesRef.doc(id).update({
       'subject_name': subjectName,
+      'faculty_name': facultyName,
+      'class_type': classType.value,
       'start_time': startTime,
       'end_time': endTime,
       'day_of_week': dayOfWeek,

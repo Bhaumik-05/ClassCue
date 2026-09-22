@@ -19,18 +19,45 @@ class ClassController {
   // VALIDATE TIME
   // ============================================================
 
+  int _toMinutes(String t) {
+    final p = t.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
+  }
+
   bool _endAfterStart(String start, String end) {
-    int toMinutes(String t) {
-      final p = t.split(':');
-
-      return int.parse(p[0]) * 60 + int.parse(p[1]);
-    }
-
     try {
-      return toMinutes(end) > toMinutes(start);
+      return _toMinutes(end) > _toMinutes(start);
     } catch (_) {
       return false;
     }
+  }
+
+  /// True if [aStart, aEnd) overlaps [bStart, bEnd) on the same day.
+  /// Back-to-back classes (one ending exactly when the other starts) do
+  /// not count as overlapping.
+  bool _rangesOverlap(String aStart, String aEnd, String bStart, String bEnd) {
+    try {
+      final aS = _toMinutes(aStart), aE = _toMinutes(aEnd);
+      final bS = _toMinutes(bStart), bE = _toMinutes(bEnd);
+      return aS < bE && bS < aE;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Checks the given time range against every other class already
+  /// scheduled on [dayOfWeek]. [excludeId] is the class being edited, so
+  /// it does not conflict with itself.
+  Future<bool> _hasConflict({
+    required String dayOfWeek,
+    required String startTime,
+    required String endTime,
+    String? excludeId,
+  }) async {
+    final sameDay = await _classService.getClasses(dayOfWeek: dayOfWeek);
+    return sameDay.any((c) =>
+    c.id != excludeId &&
+        _rangesOverlap(startTime, endTime, c.startTime, c.endTime));
   }
 
   // ============================================================
@@ -72,6 +99,8 @@ class ClassController {
 
   Future<bool> addClass({
     required String subjectName,
+    String facultyName = '',
+    ClassType classType = ClassType.lecture,
     required String startTime,
     required String endTime,
     required String dayOfWeek,
@@ -87,11 +116,22 @@ class ClassController {
     }
 
     try {
+      if (await _hasConflict(
+        dayOfWeek: dayOfWeek,
+        startTime: startTime,
+        endTime: endTime,
+      )) {
+        errorMessage = 'This overlaps with another class on that day.';
+        return false;
+      }
+
       errorMessage = null;
 
       // Add class to Firestore.
       final classId = await _classService.addClass(
         subjectName: subjectName.trim(),
+        facultyName: facultyName.trim(),
+        classType: classType,
         startTime: startTime,
         endTime: endTime,
         dayOfWeek: dayOfWeek,
@@ -123,6 +163,8 @@ class ClassController {
   Future<bool> updateClass({
     required String id,
     required String subjectName,
+    String facultyName = '',
+    ClassType classType = ClassType.lecture,
     required String startTime,
     required String endTime,
     required String dayOfWeek,
@@ -138,12 +180,24 @@ class ClassController {
     }
 
     try {
+      if (await _hasConflict(
+        dayOfWeek: dayOfWeek,
+        startTime: startTime,
+        endTime: endTime,
+        excludeId: id,
+      )) {
+        errorMessage = 'This overlaps with another class on that day.';
+        return false;
+      }
+
       errorMessage = null;
 
       // Update Firestore.
       await _classService.updateClass(
         id: id,
         subjectName: subjectName.trim(),
+        facultyName: facultyName.trim(),
+        classType: classType,
         startTime: startTime,
         endTime: endTime,
         dayOfWeek: dayOfWeek,

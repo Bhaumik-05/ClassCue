@@ -10,6 +10,8 @@ void main() {
       'start_time': '09:00',
       'end_time': '10:00',
       'day_of_week': 'MONDAY',
+      'faculty_name': 'Dr. Rao',
+      'class_type': 'LAB',
       'created_at': Timestamp.fromDate(DateTime(2026, 1, 1)),
       'updated_at': Timestamp.fromDate(DateTime(2026, 1, 2)),
     }, 'c1');
@@ -19,6 +21,8 @@ void main() {
     expect(m.startTime, '09:00');
     expect(m.endTime, '10:00');
     expect(m.dayOfWeek, 'MONDAY');
+    expect(m.facultyName, 'Dr. Rao');
+    expect(m.classType, ClassType.lab);
     expect(m.createdAt, DateTime(2026, 1, 1));
   });
 
@@ -27,6 +31,8 @@ void main() {
     expect(m.subjectName, '');
     expect(m.startTime, '');
     expect(m.dayOfWeek, '');
+    expect(m.facultyName, '');
+    expect(m.classType, ClassType.lecture);
   });
 
   test('toMap writes Firestore field names', () {
@@ -45,5 +51,23 @@ void main() {
     expect(map['start_time'], '11:00');
     expect(map['end_time'], '12:00');
     expect(map['day_of_week'], 'FRIDAY');
+    expect(map['faculty_name'], '');
+    expect(map['class_type'], 'LECTURE');
+  });
+
+  group('ClassType', () {
+    test('fromValue maps LAB and defaults everything else to lecture', () {
+      expect(ClassType.fromValue('LAB'), ClassType.lab);
+      expect(ClassType.fromValue('LECTURE'), ClassType.lecture);
+      expect(ClassType.fromValue(null), ClassType.lecture);
+      expect(ClassType.fromValue('garbage'), ClassType.lecture);
+    });
+
+    test('value and label round-trip', () {
+      expect(ClassType.lecture.value, 'LECTURE');
+      expect(ClassType.lab.value, 'LAB');
+      expect(ClassType.lecture.label, 'Lecture');
+      expect(ClassType.lab.label, 'Lab / Practical');
+    });
   });
 }

@@ -123,6 +123,8 @@ class FakeClassService extends Fake implements ClassService {
   String? lastStart;
   String? lastEnd;
   String? lastDay;
+  String? lastFaculty;
+  ClassType? lastType;
 
   @override
   Future<List<ClassModel>> getClasses({String? dayOfWeek}) async {
@@ -133,12 +135,16 @@ class FakeClassService extends Fake implements ClassService {
   @override
   Future<String> addClass({
     required String subjectName,
+    String facultyName = '',
+    ClassType classType = ClassType.lecture,
     required String startTime,
     required String endTime,
     required String dayOfWeek,
   }) async {
     addCalls++;
     lastSubject = subjectName;
+    lastFaculty = facultyName;
+    lastType = classType;
     lastStart = startTime;
     lastEnd = endTime;
     lastDay = dayOfWeek;
@@ -152,12 +158,16 @@ class FakeClassService extends Fake implements ClassService {
   Future<void> updateClass({
     required String id,
     required String subjectName,
+    String facultyName = '',
+    ClassType classType = ClassType.lecture,
     required String startTime,
     required String endTime,
     required String dayOfWeek,
   }) async {
     updateCalls++;
     lastSubject = subjectName;
+    lastFaculty = facultyName;
+    lastType = classType;
     if (fail) throw Exception('boom');
   }
 

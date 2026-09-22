@@ -4,6 +4,9 @@ import '../controllers/class_controller.dart';
 import '../models/class_model.dart';
 import '../widgets/app_animations.dart';
 
+Color _typeColor(ColorScheme scheme, ClassType type) =>
+    type == ClassType.lab ? Colors.teal : scheme.primary;
+
 class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
 
@@ -268,12 +271,15 @@ class _ClassCard extends StatelessWidget {
               height: 48,
               width: 48,
               decoration: BoxDecoration(
-                color: scheme.primaryContainer,
+                color: _typeColor(scheme, classModel.classType)
+                    .withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
-                Icons.menu_book_rounded,
-                color: scheme.onPrimaryContainer,
+                classModel.classType == ClassType.lab
+                    ? Icons.science_rounded
+                    : Icons.menu_book_rounded,
+                color: _typeColor(scheme, classModel.classType),
               ),
             ),
             const SizedBox(width: 14),
@@ -281,15 +287,42 @@ class _ClassCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    classModel.subjectName,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          classModel.subjectName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _typeColor(scheme, classModel.classType)
+                              .withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          classModel.classType.label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: _typeColor(scheme, classModel.classType),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${classModel.startTime} - ${classModel.endTime}',
+                    '${classModel.startTime} - ${classModel.endTime}'
+                        '${classModel.facultyName.isNotEmpty ? ' • ${classModel.facultyName}' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -380,7 +413,9 @@ class _ClassFormSheet extends StatefulWidget {
 
 class _ClassFormSheetState extends State<_ClassFormSheet> {
   late final TextEditingController _subjectController;
+  late final TextEditingController _facultyController;
   late String _selectedDay;
+  ClassType _classType = ClassType.lecture;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   bool _isSaving = false;
@@ -392,6 +427,9 @@ class _ClassFormSheetState extends State<_ClassFormSheet> {
     final existing = widget.existing;
     _subjectController =
         TextEditingController(text: existing?.subjectName ?? '');
+    _facultyController =
+        TextEditingController(text: existing?.facultyName ?? '');
+    _classType = existing?.classType ?? ClassType.lecture;
     _selectedDay = existing?.dayOfWeek ?? widget.initialDay;
     _startTime = existing != null ? _parseTime(existing.startTime) : null;
     _endTime = existing != null ? _parseTime(existing.endTime) : null;
@@ -411,6 +449,7 @@ class _ClassFormSheetState extends State<_ClassFormSheet> {
   @override
   void dispose() {
     _subjectController.dispose();
+    _facultyController.dispose();
     super.dispose();
   }
 
@@ -471,12 +510,16 @@ class _ClassFormSheetState extends State<_ClassFormSheet> {
         ? await widget.controller.updateClass(
       id: widget.existing!.id,
       subjectName: subject,
+      facultyName: _facultyController.text.trim(),
+      classType: _classType,
       startTime: _formatTime(_startTime!),
       endTime: _formatTime(_endTime!),
       dayOfWeek: _selectedDay,
     )
         : await widget.controller.addClass(
       subjectName: subject,
+      facultyName: _facultyController.text.trim(),
+      classType: _classType,
       startTime: _formatTime(_startTime!),
       endTime: _formatTime(_endTime!),
       dayOfWeek: _selectedDay,
@@ -504,89 +547,124 @@ class _ClassFormSheetState extends State<_ClassFormSheet> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isEditing ? 'Edit class' : 'Add class',
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _subjectController,
-              decoration: const InputDecoration(
-                labelText: 'Subject name',
-                prefixIcon: Icon(Icons.menu_book_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickTime(isStart: true),
-                    icon: const Icon(Icons.schedule_rounded),
-                    label: Text(
-                      _startTime == null
-                          ? 'Start time'
-                          : _formatTime(_startTime!),
-                    ),
+                Text(
+                  isEditing ? 'Edit class' : 'Add class',
+                  style: theme.textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _subjectController,
+                  decoration: const InputDecoration(
+                    labelText: 'Subject name',
+                    prefixIcon: Icon(Icons.menu_book_outlined),
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickTime(isStart: false),
-                    icon: const Icon(Icons.schedule_rounded),
-                    label: Text(
-                      _endTime == null ? 'End time' : _formatTime(_endTime!),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _facultyController,
+                  decoration: const InputDecoration(
+                    labelText: 'Faculty name (optional)',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SegmentedButton<ClassType>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ClassType.lecture,
+                      label: Text('Lecture'),
+                      icon: Icon(Icons.menu_book_rounded),
                     ),
+                    ButtonSegment(
+                      value: ClassType.lab,
+                      label: Text('Lab / Practical'),
+                      icon: Icon(Icons.science_rounded),
+                    ),
+                  ],
+                  selected: {_classType},
+                  onSelectionChanged: (s) =>
+                      setState(() => _classType = s.first),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickTime(isStart: true),
+                        icon: const Icon(Icons.schedule_rounded),
+                        label: Text(
+                          _startTime == null
+                              ? 'Start time'
+                              : _formatTime(_startTime!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickTime(isStart: false),
+                        icon: const Icon(Icons.schedule_rounded),
+                        label: Text(
+                          _endTime == null ? 'End time' : _formatTime(_endTime!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: widget.days.map((day) {
+                    final isSelected = day == _selectedDay;
+                    return ChoiceChip(
+                      label: Text(widget.dayLabel(day)),
+                      selected: isSelected,
+                      onSelected: (_) => setState(() => _selectedDay = day),
+                    );
+                  }).toList(),
+                ),
+                if (_errorText != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _errorText!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _isSaving ? null : _save,
+                    child: _isSaving
+                        ? const CircularProgressIndicator()
+                        : Text(isEditing ? 'Save changes' : 'Add class'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: widget.days.map((day) {
-                final isSelected = day == _selectedDay;
-                return ChoiceChip(
-                  label: Text(widget.dayLabel(day)),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => _selectedDay = day),
-                );
-              }).toList(),
-            ),
-            if (_errorText != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _errorText!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.error,
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 52,
-              child: FilledButton(
-                onPressed: _isSaving ? null : _save,
-                child: _isSaving
-                    ? const CircularProgressIndicator()
-                    : Text(isEditing ? 'Save changes' : 'Add class'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

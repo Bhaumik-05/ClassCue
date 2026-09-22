@@ -47,6 +47,9 @@ String _clock(String t) {
   return '$h12:$mm ${h >= 12 ? 'PM' : 'AM'}';
 }
 
+Color _typeColor(ColorScheme scheme, ClassType type) =>
+    type == ClassType.lab ? Colors.teal : scheme.primary;
+
 String _span(int minutes) {
   if (minutes < 1) return 'less than a minute';
   if (minutes < 60) return '$minutes min';
@@ -699,21 +702,43 @@ class _ClassHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: scheme.onPrimaryContainer.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    inProgress ? 'IN PROGRESS' : 'NEXT UP',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color:
+                        scheme.onPrimaryContainer.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        inProgress ? 'IN PROGRESS' : 'NEXT UP',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _typeColor(scheme, cls.classType)
+                            .withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        cls.classType.label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -727,7 +752,8 @@ class _ClassHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${_clock(cls.startTime)} – ${_clock(cls.endTime)}',
+                  '${_clock(cls.startTime)} – ${_clock(cls.endTime)}'
+                      '${cls.facultyName.isNotEmpty ? ' • ${cls.facultyName}' : ''}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onPrimaryContainer,
                   ),
@@ -759,7 +785,9 @@ class _ClassHero extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Icon(
-            Icons.school_rounded,
+            cls.classType == ClassType.lab
+                ? Icons.science_rounded
+                : Icons.school_rounded,
             size: 48,
             color: scheme.onPrimaryContainer.withValues(alpha: 0.85),
           ),
@@ -814,14 +842,45 @@ class _ClassRow extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            cls.subjectName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              decoration:
+                              past ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                          if (cls.facultyName.isNotEmpty)
+                            Text(
+                              cls.facultyName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _typeColor(scheme, cls.classType)
+                            .withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Text(
-                        cls.subjectName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        cls.classType.label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: _typeColor(scheme, cls.classType),
                           fontWeight: FontWeight.bold,
-                          decoration:
-                          past ? TextDecoration.lineThrough : null,
                         ),
                       ),
                     ),

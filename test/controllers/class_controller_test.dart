@@ -216,4 +216,131 @@ void main() {
       expect(notificationService.scheduleCalls, 0);
     });
   });
+
+
+  group('faculty name and class type (CRUD passthrough)', () {
+    test('addClass saves trimmed faculty name and type', () async {
+      final ok = await controller.addClass(
+        subjectName: 'Maths',
+        facultyName: '  Dr. Rao  ',
+        classType: ClassType.lab,
+        startTime: '09:00',
+        endTime: '10:00',
+        dayOfWeek: 'MONDAY',
+      );
+      expect(ok, isTrue);
+      expect(service.lastFaculty, 'Dr. Rao');
+      expect(service.lastType, ClassType.lab);
+    });
+
+    test('updateClass saves trimmed faculty name and type', () async {
+      final ok = await controller.updateClass(
+        id: 'c1',
+        subjectName: 'Physics',
+        facultyName: ' Prof. Shah ',
+        classType: ClassType.lab,
+        startTime: '11:00',
+        endTime: '12:00',
+        dayOfWeek: 'TUESDAY',
+      );
+      expect(ok, isTrue);
+      expect(service.lastFaculty, 'Prof. Shah');
+      expect(service.lastType, ClassType.lab);
+    });
+
+    test('facultyName and classType default when omitted', () async {
+      await add();
+      expect(service.lastFaculty, '');
+      expect(service.lastType, ClassType.lecture);
+    });
+  });
+
+  group('overlapping time slots (inclusive)', () {
+    ClassModel existing(String id, String start, String end, {String day = 'MONDAY'}) {
+      final now = DateTime.now();
+      return ClassModel(
+        id: id,
+        subjectName: 'Existing',
+        startTime: start,
+        endTime: end,
+        dayOfWeek: day,
+        createdAt: now,
+        updatedAt: now,
+      );
+    }
+
+    test('rejects an identical time slot on the same day', () async {
+      service.classes = [existing('c1', '10:00', '12:00')];
+      final ok = await add(start: '10:00', end: '12:00');
+      expect(ok, isFalse);
+      expect(controller.errorMessage,
+          'This overlaps with another class on that day.');
+      expect(service.addCalls, 0);
+    });
+
+    test('rejects a slot that partially overlaps (11:00-12:00 inside 10-12)',
+            () async {
+          service.classes = [existing('c1', '10:00', '12:00')];
+          final ok = await add(start: '11:00', end: '12:00');
+          expect(ok, isFalse);
+          expect(service.addCalls, 0);
+        });
+
+    test('rejects a slot that starts earlier but still overlaps', () async {
+      service.classes = [existing('c1', '10:00', '12:00')];
+      final ok = await add(start: '09:00', end: '11:00');
+      expect(ok, isFalse);
+    });
+
+    test('allows a slot that starts exactly when the other ends', () async {
+      service.classes = [existing('c1', '09:00', '10:00')];
+      final ok = await add(start: '10:00', end: '11:00');
+      expect(ok, isTrue);
+      expect(service.addCalls, 1);
+    });
+
+    test('allows the same time slot on a different day', () async {
+      service.classes = [existing('c1', '10:00', '12:00', day: 'TUESDAY')];
+      final ok = await add(start: '10:00', end: '12:00');
+      expect(ok, isTrue);
+    });
+
+    test('editing a class ignores its own existing slot', () async {
+      service.classes = [existing('c1', '10:00', '12:00')];
+      final ok = await controller.updateClass(
+        id: 'c1',
+        subjectName: 'Maths',
+        startTime: '10:30',
+        endTime: '12:00',
+        dayOfWeek: 'MONDAY',
+      );
+      expect(ok, isTrue);
+      expect(service.updateCalls, 1);
+    });
+
+    test('editing into another class\'s slot is still rejected', () async {
+      service.classes = [
+        existing('c1', '09:00', '10:00'),
+        existing('c2', '10:00', '11:00'),
+      ];
+      final ok = await controller.updateClass(
+        id: 'c1',
+        subjectName: 'Maths',
+        startTime: '09:30',
+        endTime: '10:30',
+        dayOfWeek: 'MONDAY',
+      );
+      expect(ok, isFalse);
+      expect(service.updateCalls, 0);
+    });
+
+    test('a failed conflict lookup blocks the save with a friendly error',
+            () async {
+          service.fail = true;
+          final ok = await add();
+          expect(ok, isFalse);
+          expect(controller.errorMessage,
+              'Could not add class. Please try again.');
+        });
+  });
 }

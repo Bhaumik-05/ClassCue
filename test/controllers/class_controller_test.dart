@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_project/controllers/class_controller.dart';
+import 'package:flutter_project/models/class_model.dart';
 
 import '../helpers/fakes.dart';
 
@@ -176,6 +177,43 @@ void main() {
       service.fail = true;
       await controller.deleteClass('c1');
       expect(notificationService.cancelCalls, 0);
+    });
+  });
+
+  group('rescheduleReminders (after login / reinstall)', () {
+    ClassModel cls(String id, String subject, String start, String day) {
+      final now = DateTime.now();
+      return ClassModel(
+        id: id,
+        subjectName: subject,
+        startTime: start,
+        endTime: '23:00',
+        dayOfWeek: day,
+        createdAt: now,
+        updatedAt: now,
+      );
+    }
+
+    test('schedules a reminder for every saved class', () async {
+      service.classes = [
+        cls('c1', 'Maths', '09:00', 'MONDAY'),
+        cls('c2', 'Physics', '11:00', 'TUESDAY'),
+      ];
+      await controller.rescheduleReminders();
+      expect(notificationService.scheduleCalls, 2);
+      expect(notificationService.lastClassId, 'c2');
+      expect(notificationService.lastDay, 'TUESDAY');
+    });
+
+    test('does nothing when there are no classes', () async {
+      await controller.rescheduleReminders();
+      expect(notificationService.scheduleCalls, 0);
+    });
+
+    test('never throws when loading classes fails', () async {
+      service.fail = true;
+      await expectLater(controller.rescheduleReminders(), completes);
+      expect(notificationService.scheduleCalls, 0);
     });
   });
 }

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_project/models/assignment_model.dart';
+import 'package:flutter_project/models/class_model.dart';
 import 'package:flutter_project/services/assignment_service.dart';
 import 'package:flutter_project/services/auth_service.dart';
 import 'package:flutter_project/services/class_service.dart';
@@ -53,6 +54,7 @@ class FakeAuthService extends Fake implements AuthService {
 
 class FakeAssignmentService extends Fake implements AssignmentService {
   bool fail = false;
+  int rescheduleCalls = 0;
   int addCalls = 0;
   int updateCalls = 0;
   int deleteCalls = 0;
@@ -60,6 +62,12 @@ class FakeAssignmentService extends Fake implements AssignmentService {
   String? lastSubject;
   DateTime? lastDeadline;
   bool? lastCompleted;
+
+  @override
+  Future<void> rescheduleReminders() async {
+    rescheduleCalls++;
+    if (fail) throw Exception('boom');
+  }
 
   @override
   Stream<List<AssignmentModel>> watchAssignments() => Stream.value([]);
@@ -107,6 +115,7 @@ class FakeAssignmentService extends Fake implements AssignmentService {
 
 class FakeClassService extends Fake implements ClassService {
   bool fail = false;
+  List<ClassModel> classes = [];
   int addCalls = 0;
   int updateCalls = 0;
   int deleteCalls = 0;
@@ -114,6 +123,12 @@ class FakeClassService extends Fake implements ClassService {
   String? lastStart;
   String? lastEnd;
   String? lastDay;
+
+  @override
+  Future<List<ClassModel>> getClasses({String? dayOfWeek}) async {
+    if (fail) throw Exception('boom');
+    return classes;
+  }
 
   @override
   Future<String> addClass({

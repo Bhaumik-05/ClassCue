@@ -194,4 +194,19 @@ class ClassController {
       return false;
     }
   }
+
+  /// Re-creates every class reminder (after login / reinstall). Never throws.
+  Future<void> rescheduleReminders() async {
+    try {
+      final classes = await _classService.getClasses();
+      for (final c in classes) {
+        await _notificationService.scheduleClassReminder(
+          classId: c.id,
+          subjectName: c.subjectName,
+          startTime: c.startTime,
+          dayOfWeek: c.dayOfWeek,
+        );
+      }
+    } catch (_) {}
+  }
 }

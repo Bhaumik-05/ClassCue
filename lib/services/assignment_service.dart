@@ -181,4 +181,19 @@ class AssignmentService {
       'Assignment deleted and reminder cancelled.',
     );
   }
+
+  /// Re-creates deadline reminders for pending assignments (after login /
+  /// reinstall). Does not pop an immediate alert for ones already inside 24h.
+  Future<void> rescheduleReminders() async {
+    final all = await getAssignments();
+    for (final a in all.where((a) => !a.isCompleted)) {
+      await _notificationService.scheduleAssignmentReminder(
+        assignmentId: a.id,
+        title: a.title,
+        subject: a.subject,
+        deadline: a.deadline,
+        notifyIfDue: false,
+      );
+    }
+  }
 }

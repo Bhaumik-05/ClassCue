@@ -7,6 +7,7 @@ import '../controllers/assignment_controller.dart';
 import '../controllers/class_controller.dart';
 import '../models/assignment_model.dart';
 import '../models/class_model.dart';
+import '../services/notification_service.dart';
 import '../widgets/app_animations.dart';
 import '../widgets/custom_snackbar.dart';
 import 'assignments_screen.dart';
@@ -68,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final AssignmentController _assignmentController = AssignmentController();
   final ClassController _classController = ClassController();
 
+  late final Stream<User?> _userStream;
   late final Stream<List<AssignmentModel>> _assignmentsStream;
   late Stream<List<ClassModel>> _classesStream;
   late String _todayKey;
@@ -76,9 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _userStream = FirebaseAuth.instance.userChanges();
     _assignmentsStream = _assignmentController.watchAssignments();
     _todayKey = _dayKeys[DateTime.now().weekday - 1];
     _classesStream = _classController.watchClasses(dayOfWeek: _todayKey);
+
+    // Make sure this account's reminders exist on this device.
+    unawaited(_classController.rescheduleReminders());
+    unawaited(_assignmentController.rescheduleReminders());
 
     // Keeps "starts in 25 min" / "due in 3h" labels fresh, and rolls the
     // class list over when the day changes.
@@ -134,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final scheme = theme.colorScheme;
 
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.userChanges(),
+      stream: _userStream,
       builder: (context, userSnapshot) {
         final user = userSnapshot.data;
         final name = user?.displayName?.trim().isNotEmpty == true
@@ -173,7 +180,10 @@ class _HomeScreenState extends State<HomeScreen> {
               IconButton(
                 tooltip: 'Log out',
                 icon: const Icon(Icons.logout_rounded),
-                onPressed: () async => FirebaseAuth.instance.signOut(),
+                onPressed: () async {
+                  await NotificationService().cancelAllReminders();
+                  await FirebaseAuth.instance.signOut();
+                },
               ),
             ],
           ),

@@ -7,10 +7,15 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <!-- Required for exact scheduled notifications -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32"/>
+
+    <!-- Auto-granted on Android 13+ (calendar/timetable style reminders) -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 
     <application
-        android:label="flutter_project"
+        android:label="ClassCue"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

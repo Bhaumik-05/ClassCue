@@ -1,4 +1,4 @@
-# flutter_project
+# ClassCue
 
 Timetable manager and Reminder tracker
 

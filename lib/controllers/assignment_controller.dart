@@ -204,4 +204,11 @@ class AssignmentController {
       return false;
     }
   }
+
+  /// Re-creates reminders for pending assignments. Never throws.
+  Future<void> rescheduleReminders() async {
+    try {
+      await _service.rescheduleReminders();
+    } catch (_) {}
+  }
 }

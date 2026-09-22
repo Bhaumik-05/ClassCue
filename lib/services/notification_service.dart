@@ -50,7 +50,15 @@ class NotificationService {
   // INITIALIZATION
   // ============================================================
 
-  Future<void> initialize() async {
+  Future<void>? _initFuture;
+
+  /// Safe to call many times / concurrently.
+  Future<void> initialize() => _initFuture ??= _doInitialize().whenComplete(() {
+        // Allow a retry if initialisation failed.
+        if (!_initialized) _initFuture = null;
+      });
+
+  Future<void> _doInitialize() async {
     if (_initialized) {
       return;
     }
@@ -71,10 +79,12 @@ class NotificationService {
     await _requestPermission();
 
     // Request exact alarm permission.
-    await _requestExactAlarmPermission();
 
     // Get FCM token.
-    await _getToken();
+    await _getToken().timeout(
+      const Duration(seconds: 8),
+      onTimeout: () {},
+    );
 
     // Listen for token refresh.
     _listenForTokenRefresh();
@@ -415,13 +425,41 @@ class NotificationService {
   // SCHEDULE ASSIGNMENT DEADLINE REMINDER
   // ============================================================
 
+  /// Exact alarms need a permission that Android can deny. Without this
+  /// fallback the reminder was silently never scheduled.
+  Future<AndroidScheduleMode> _scheduleMode() async {
+    try {
+      final android = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final canExact = await android?.canScheduleExactNotifications() ?? false;
+      return canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+    } catch (_) {
+      return AndroidScheduleMode.inexactAllowWhileIdle;
+    }
+  }
+
+  /// Removes every scheduled reminder (used on logout).
+  Future<void> cancelAllReminders() async {
+    try {
+      await initialize();
+      await _localNotifications.cancelAll();
+    } catch (e) {
+      print('ERROR cancelling all reminders: $e');
+    }
+  }
+
   Future<void> scheduleAssignmentReminder({
     required String assignmentId,
     required String title,
     required String subject,
     required DateTime deadline,
+    bool notifyIfDue = true,
   }) async {
     try {
+      await initialize();
       final notificationId =
       _assignmentNotificationId(assignmentId);
 
@@ -465,11 +503,13 @@ class NotificationService {
               'Showing notification immediately.',
         );
 
-        await _showAssignmentReminderNow(
-          notificationId: notificationId,
-          title: title,
-          subject: subject,
-        );
+        if (notifyIfDue) {
+          await _showAssignmentReminderNow(
+            notificationId: notificationId,
+            title: title,
+            subject: subject,
+          );
+        }
 
         return;
       }
@@ -502,8 +542,7 @@ class NotificationService {
         body: '$title${subject.isNotEmpty ? ' • $subject' : ''}',
         scheduledDate: scheduledDate,
         notificationDetails: notificationDetails,
-        androidScheduleMode:
-        AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: await _scheduleMode(),
         payload: 'assignment:$assignmentId',
       );
 
@@ -557,6 +596,7 @@ class NotificationService {
       String assignmentId,
       ) async {
     try {
+      await initialize();
       final notificationId =
       _assignmentNotificationId(assignmentId);
 
@@ -698,7 +738,7 @@ class NotificationService {
   // ============================================================
   // SCHEDULE CLASS REMINDER
   //
-  // Reminder is 5 minutes before class.
+  // Reminder is 10 minutes before class.
   // The notification repeats every week.
   // ============================================================
 
@@ -709,6 +749,7 @@ class NotificationService {
     required String dayOfWeek,
   }) async {
     try {
+      await initialize();
       final notificationId =
       _classNotificationId(classId);
 
@@ -733,7 +774,7 @@ class NotificationService {
 
       // Calculate reminder time.
       final reminderTime = classStart.subtract(
-        const Duration(minutes: 5),
+        const Duration(minutes: 10),
       );
 
       final now = tz.TZDateTime.now(tz.local);
@@ -769,7 +810,7 @@ class NotificationService {
       tz.TZDateTime scheduledReminder = reminderTime;
 
       // ----------------------------------------------------------
-      // If the 5-minute reminder has already passed,
+      // If the 10-minute reminder has already passed,
       // schedule next week's reminder.
       //
       // Example:
@@ -813,11 +854,10 @@ class NotificationService {
       await _localNotifications.zonedSchedule(
         id: notificationId,
         title: 'Class Starting Soon',
-        body: '$subjectName starts in 5 minutes.',
+        body: '$subjectName starts in 10 minutes. Turn on Silent/DND mode.',
         scheduledDate: scheduledReminder,
         notificationDetails: notificationDetails,
-        androidScheduleMode:
-        AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: await _scheduleMode(),
         matchDateTimeComponents:
         DateTimeComponents.dayOfWeekAndTime,
         payload: 'class:$classId',
@@ -842,6 +882,7 @@ class NotificationService {
       String classId,
       ) async {
     try {
+      await initialize();
       final notificationId =
       _classNotificationId(classId);
 

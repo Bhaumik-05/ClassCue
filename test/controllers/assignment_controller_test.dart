@@ -163,4 +163,16 @@ void main() {
       expect(controller.pending(list).first.id, 'overdue');
     });
   });
+
+  group('rescheduleReminders', () {
+    test('asks the service to rebuild reminders', () async {
+      await controller.rescheduleReminders();
+      expect(service.rescheduleCalls, 1);
+    });
+
+    test('never throws when the service fails', () async {
+      service.fail = true;
+      await expectLater(controller.rescheduleReminders(), completes);
+    });
+  });
 }

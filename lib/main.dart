@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -31,19 +33,20 @@ Future<void> main() async {
   // NOTIFICATION SERVICE
   // ============================================================
 
-  final notificationService = NotificationService();
-
-  await notificationService.initialize();
-
-  // Check whether the app was opened by tapping
-  // a notification while completely terminated.
-  await notificationService.checkInitialMessage();
-
-  // ============================================================
-  // RUN APP
-  // ============================================================
-
   runApp(const MyApp());
+
+  // Never block the UI on permission dialogs or the FCM token.
+  unawaited(_setupNotifications());
+}
+
+Future<void> _setupNotifications() async {
+  try {
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+    await notificationService.checkInitialMessage();
+  } catch (e) {
+    debugPrint('Notification setup failed: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -129,7 +129,8 @@ class FakeClassService extends Fake implements ClassService {
   @override
   Future<List<ClassModel>> getClasses({String? dayOfWeek}) async {
     if (fail) throw Exception('boom');
-    return classes;
+    if (dayOfWeek == null) return classes;
+    return classes.where((c) => c.dayOfWeek == dayOfWeek).toList();
   }
 
   @override

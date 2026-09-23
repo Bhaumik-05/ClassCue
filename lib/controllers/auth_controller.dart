@@ -360,6 +360,52 @@ class AuthController {
   }
 
   // ============================================================
+  // GOOGLE SIGN IN
+  // ============================================================
+
+  Future<bool> signInWithGoogle() async {
+    try {
+      errorMessage = null;
+
+      await _authService.signInWithGoogle();
+
+      CustomSnackbar.success(
+        title: 'Welcome!',
+        message: 'You have successfully signed in.',
+      );
+
+      return true;
+    } on FirebaseAuthException catch (e) {
+      print('GOOGLE SIGN-IN ERROR CODE: ${e.code}');
+
+      errorMessage = e.message ?? 'Google sign-in failed.';
+
+      CustomSnackbar.error(
+        title: 'Sign-in Failed',
+        message: errorMessage!,
+      );
+
+      return false;
+    } catch (e) {
+      print('UNKNOWN GOOGLE SIGN-IN ERROR: $e'); // <-- check browser console (F12) for this
+
+      // User cancelled the picker — no need for an error toast.
+      if (e.toString().contains('cancelled')) {
+        return false;
+      }
+
+      errorMessage = 'Something went wrong. Please try again.\n$e'; // TEMP: shows real error
+
+      CustomSnackbar.error(
+        title: 'Sign-in Failed',
+        message: errorMessage!,
+      );
+
+      return false;
+    }
+  }
+
+  // ============================================================
   // LOGOUT
   // ============================================================
 

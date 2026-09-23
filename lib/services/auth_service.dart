@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/user.dart';
 
@@ -8,6 +9,63 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // =========================
+  // GOOGLE SIGN IN
+  // =========================
+
+  Future<UserCredential> signInWithGoogle() async {
+    // 1. Trigger Google account picker
+    final googleUser = await _googleSignIn.signIn();
+
+    if (googleUser == null) {
+      throw Exception('Google sign-in cancelled.');
+    }
+
+    // 2. Get auth tokens
+    final googleAuth = await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // 3. Sign in to Firebase
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+
+    if (user == null) {
+      throw Exception('Firebase user was not created.');
+    }
+
+    // 4. Get FCM token
+    final fcmToken = await _messaging.getToken();
+
+    // 5. Create user doc only if new
+    final docRef = _firestore.collection('users').doc(user.uid);
+    final docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      final now = DateTime.now();
+      final userModel = UserModel(
+        uid: user.uid,
+        name: user.displayName ?? '',
+        email: user.email ?? '',
+        fcmToken: fcmToken,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await docRef.set(userModel.toMap());
+    } else {
+      await docRef.update({
+        'fcm_token': fcmToken,
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+    }
+
+    return userCredential;
+  }
 
   // =========================
   // SIGN UP

@@ -80,6 +80,25 @@ class _LoginScreenState extends State<LoginScreen> {
     // AuthGate automatically shows HomeScreen.
   }
 
+  // ============================================================
+  // GOOGLE SIGN IN
+  // ============================================================
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await _authController.signInWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+    // AuthGate automatically shows HomeScreen on success.
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -224,6 +243,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: CircularProgressIndicator(),
                 )
                     : const Text('Sign in'),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ==================================================
+            // OR DIVIDER
+            // ==================================================
+
+            Row(
+              children: [
+                Expanded(child: Divider(color: scheme.outlineVariant)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    'or',
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                ),
+                Expanded(child: Divider(color: scheme.outlineVariant)),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // ==================================================
+            // GOOGLE SIGN IN
+            // ==================================================
+
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+                label: const Text('Continue with Google'),
               ),
             ),
 

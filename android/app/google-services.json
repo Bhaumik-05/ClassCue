@@ -12,7 +12,20 @@
           "package_name": "com.classcue.app.flutter_project"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "768778503722-efl04oe4f4rd385gr51he2aubiiv6dv1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.classcue.app.flutter_project",
+            "certificate_hash": "aff4dc36c44273325ed60cd9cf1796776df0143e"
+          }
+        },
+        {
+          "client_id": "768778503722-s9ebub9c4so8dr7ma7jv82h3h4l0mudr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDS-zU8Cet991IBLC6s4sHuyrqk4H24v_c"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "768778503722-s9ebub9c4so8dr7ma7jv82h3h4l0mudr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "768778503722-5n16ctmm6b77pi78bjbavd80rg8i4mp3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sdpProject"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +56,12 @@
           "package_name": "com.example.sdp_project"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "768778503722-s9ebub9c4so8dr7ma7jv82h3h4l0mudr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDS-zU8Cet991IBLC6s4sHuyrqk4H24v_c"
@@ -39,7 +69,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "768778503722-s9ebub9c4so8dr7ma7jv82h3h4l0mudr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "768778503722-5n16ctmm6b77pi78bjbavd80rg8i4mp3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sdpProject"
+              }
+            }
+          ]
         }
       }
     }

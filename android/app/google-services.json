@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "768778503722-r7dc86546ikvdv5fks9v8hl6h8bttbar.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.classcue.app.flutter_project",
+            "certificate_hash": "472b3e7efe14bfadd7796d378584f5c263f021ff"
+          }
+        },
+        {
           "client_id": "768778503722-s9ebub9c4so8dr7ma7jv82h3h4l0mudr.apps.googleusercontent.com",
           "client_type": 3
         }
